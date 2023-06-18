@@ -58,20 +58,23 @@ public class OrderRouterWithStop {
             public void configure() {
                 // load file orders from src/data into the JMS queue
                 from("file:data?noop=true").to("jms:incomingOrders");
-        
+
                 // content-based router
                 from("jms:incomingOrders")
 //                        .log("AAAAAA" + "${headers}")
-                        .process(ex -> execute(ex))
-                .choice()
-                    .when(header("CamelFileName").endsWith(".xml"))
+                        .choice()
+                        .when(header("CamelFileName").endsWith(".xml"))
                         .to("jms:xmlOrders")
-                    .when(header("CamelFileName").regex("^.*(csv|csl)$"))
+                        .when(header("CamelFileName").regex("^.*(csv|csl)$"))
                         .to("jms:csvOrders")
-                    .otherwise()
-                        .to("jms:badOrders").stop()
-                .end()
-                .to("jms:continuedProcessing");
+                        .otherwise()
+                        .to("jms:badOrders")
+                        .process(ex -> {
+                            execute(ex);
+                        })
+                        .stop()
+                        .end()
+                        .to("jms:continuedProcessing");
 
                 from("jms:xmlOrders").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
