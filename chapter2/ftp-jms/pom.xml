@@ -26,7 +26,6 @@
     <dependency>
       <groupId>org.apache.camel</groupId>
       <artifactId>camel-ftp</artifactId>
-      <version>${camel-version}</version>
     </dependency>
 
     <dependency>
@@ -50,6 +49,14 @@
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
           <includePluginDependencies>false</includePluginDependencies>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>8</source>
+          <target>8</target>
         </configuration>
       </plugin>
     </plugins>

@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,77 +27,78 @@ import org.apache.camel.component.jms.JmsComponent;
 import org.apache.camel.impl.DefaultCamelContext;
 
 /**
- * A set of routes that watches a directory for new orders, reads them, converts the order 
- * file into a JMS Message and then sends it to the JMS incomingOrders queue hosted 
+ * A set of routes that watches a directory for new orders, reads them, converts the order
+ * file into a JMS Message and then sends it to the JMS incomingOrders queue hosted
  * on an embedded ActiveMQ broker instance.
- * 
+ * <p>
  * From there a content-based router is used to send the order to either the
  * xmlOrders or csvOrders queue. If an order file does not end with the
- * csv, csl, or xml extension the order is sent to the badOrders queue. 
- * 
+ * csv, csl, or xml extension the order is sent to the badOrders queue.
+ * <p>
  * Orders with the proper file extension are also sent to the continuedProcessing
  * queue; bad orders are held back by the "stop" method.
  *
  * @author janstey
- *
  */
 public class OrderRouterWithStop {
 
     public static void main(String args[]) throws Exception {
         // create CamelContext
         CamelContext context = new DefaultCamelContext();
-        
+
         // connect to embedded ActiveMQ JMS broker
-        ConnectionFactory connectionFactory = 
-            new ActiveMQConnectionFactory("vm://localhost");
+        ConnectionFactory connectionFactory =
+                new ActiveMQConnectionFactory("vm://localhost");
         context.addComponent("jms",
-            JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
+                JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
 
         // add our route to the CamelContext
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() {
                 // load file orders from src/data into the JMS queue
-                from("file:src/data?noop=true").to("jms:incomingOrders");
+                from("file:data?noop=true").to("jms:incomingOrders");
         
                 // content-based router
                 from("jms:incomingOrders")
+//                        .log("AAAAAA" + "${headers}")
+                        .process(ex -> execute(ex))
                 .choice()
                     .when(header("CamelFileName").endsWith(".xml"))
-                        .to("jms:xmlOrders")  
+                        .to("jms:xmlOrders")
                     .when(header("CamelFileName").regex("^.*(csv|csl)$"))
                         .to("jms:csvOrders")
                     .otherwise()
                         .to("jms:badOrders").stop()
                 .end()
                 .to("jms:continuedProcessing");
-                
+
                 from("jms:xmlOrders").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("Received XML order: " 
-                                + exchange.getIn().getHeader("CamelFileName"));   
+                        System.out.println("Received XML order: "
+                                + exchange.getIn().getHeader("CamelFileName"));
                     }
-                });                
+                });
                 from("jms:csvOrders").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("Received CSV order: " 
-                                + exchange.getIn().getHeader("CamelFileName"));   
+                        System.out.println("Received CSV order: "
+                                + exchange.getIn().getHeader("CamelFileName"));
                     }
                 });
                 from("jms:badOrders").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("Received bad order: " 
-                                + exchange.getIn().getHeader("CamelFileName"));   
+                        System.out.println("Received bad order: "
+                                + exchange.getIn().getHeader("CamelFileName"));
                     }
-                });   
-                
+                });
+
                 // test that our route is working
                 from("jms:continuedProcessing").process(new Processor() {
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("Received continued order: " 
-                                + exchange.getIn().getHeader("CamelFileName"));   
+                        System.out.println("Received continued order: "
+                                + exchange.getIn().getHeader("CamelFileName"));
                     }
-                });                        
+                });
             }
         });
 
@@ -107,5 +108,9 @@ public class OrderRouterWithStop {
 
         // stop the CamelContext
         context.stop();
+    }
+
+    private static void execute(Exchange ex) {
+        System.out.println(ex);
     }
 }

@@ -48,7 +48,11 @@ public class FtpToJMSExample {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() {
-                from("ftp://rider.com/orders?username=rider&password=secret").to("jms:incomingOrders");
+                from("ftp://localhost:21?username=javaftp&password=javaftp")
+                        .id("AAA route")
+                        .log("${body}")
+                .tracing()
+                        .to("jms:incomingOrders");
             }
         });
 

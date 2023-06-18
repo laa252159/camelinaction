@@ -50,10 +50,11 @@ public class FtpToJMSWithProcessorExample {
         context.addRoutes(new RouteBuilder() {
             @Override
             public void configure() {
-                from("ftp://rider.com/orders?username=rider&password=secret").
+                from("ftp://localhost:21?username=javaftp&password=javaftp").
                 process(new Processor() {                    
                     public void process(Exchange exchange) throws Exception {
                         System.out.println("We just downloaded: " + exchange.getIn().getHeader("CamelFileName"));
+                        System.out.println(exchange.getIn().getHeaders());
                     }
                 }).
                 to("jms:incomingOrders");
